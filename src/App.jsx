@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MovieSearchInput from './MovieSearchInput';
 
+// Get API URL from environment or use default
+const API_URL = import.meta.env.REACT_APP_API_URL || 'https://showgrid-api.onrender.com';
+
+console.log('API URL:', API_URL);
+
 export default function App() {
   const [view, setView] = useState('lobby');
   const [medium, setMedium] = useState('movies');
@@ -22,18 +27,18 @@ export default function App() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/puzzles')
+    fetch(`${API_URL}/api/puzzles`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to load puzzles');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(data => {
-        setPuzzles(data || []);
+        setPuzzles(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
         console.error('Error loading puzzles:', err);
-        setError('Failed to load puzzles. Please refresh.');
+        setError(`Failed to load puzzles: ${err.message}`);
         setLoading(false);
       });
   }, []);
@@ -63,13 +68,13 @@ export default function App() {
       return;
     }
     const newPuzzle = { title, medium, xAxis: xCategories, yAxis: yCategories };
-    fetch('/api/puzzles', {
+    fetch(`${API_URL}/api/puzzles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPuzzle)
     })
       .then(res => {
-        if (!res.ok) throw new Error('Failed to create puzzle');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(data => {
@@ -82,25 +87,25 @@ export default function App() {
       })
       .catch(err => {
         console.error('Error creating puzzle:', err);
-        setError('Failed to create puzzle');
+        setError(`Failed to create puzzle: ${err.message}`);
       });
   };
 
   const handleSolveSubmit = () => {
     setTimerActive(false);
-    fetch(`/api/puzzles/${activePuzzle.id}/solve`, {
+    fetch(`${API_URL}/api/puzzles/${activePuzzle.id}/solve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswers, timeElapsed: seconds })
     })
       .then(res => {
-        if (!res.ok) throw new Error('Failed to submit');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(data => setResult(data))
       .catch(err => {
         console.error('Error submitting puzzle:', err);
-        setError('Failed to submit puzzle');
+        setError(`Failed to submit puzzle: ${err.message}`);
       });
   };
 

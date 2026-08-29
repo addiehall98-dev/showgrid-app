@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Get API URL from environment
+const API_URL = import.meta.env.REACT_APP_API_URL || 'https://showgrid-api.onrender.com';
+
 export default function MovieSearchInput({ value, onChange, disabled, medium }) {
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -20,11 +23,11 @@ export default function MovieSearchInput({ value, onChange, disabled, medium }) 
 
     setLoading(true);
     const timer = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(query)}&medium=${medium || 'movies'}`)
+      fetch(`${API_URL}/api/search?q=${encodeURIComponent(query)}&medium=${medium || 'movies'}`)
         .then(res => res.json())
         .then(data => {
-          setSuggestions(data || []);
-          setIsOpen((data || []).length > 0);
+          setSuggestions(Array.isArray(data) ? data : []);
+          setIsOpen((Array.isArray(data) ? data : []).length > 0);
           setLoading(false);
         })
         .catch(err => {
