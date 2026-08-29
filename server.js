@@ -4,11 +4,39 @@ const fetch = require('node-fetch');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-app.use(cors());
+
+// CORS Configuration - Allow Vercel frontend
+const allowedOrigins = [
+  'https://showgrid-84vzvbs01-showgrid-app.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5000'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+if (!TMDB_API_KEY) {
+  console.warn('WARNING: TMDB_API_KEY not set. Search functionality will not work.');
+}
 
 // Grounded Stage Answer Bank (Broadway & Musical Theater)
 const stageAnswerBank = {
@@ -57,9 +85,22 @@ const puzzles = [
   }
 ];
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
 app.get('/api/search', async (req, res) => {
   const { q, medium } = req.query;
-  if (!q || q.trim().length < 2) return res.json([]);
+  
+  if (!q || q.trim().length < 2) {
+    return res.json([]);
+  }
+
+  if (!TMDB_API_KEY) {
+    console.warn('Search attempted but TMDB_API_KEY not configured');
+    return res.status(500).json({ error: 'Search API not configured' });
+  }
 
   const endpoint = medium === 'tv' ? 'search/tv' : 'search/movie';
 
@@ -68,6 +109,11 @@ app.get('/api/search', async (req, res) => {
       `${TMDB_BASE_URL}/${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&page=1`
     );
     const data = await tmdbRes.json();
+
+    if (!tmdbRes.ok) {
+      console.error('TMDb API error:', data);
+      return res.status(500).json({ error: 'TMDb API error' });
+    }
 
     const suggestions = (data.results || []).slice(0, 5).map(item => ({
       id: item.id,
@@ -78,8 +124,8 @@ app.get('/api/search', async (req, res) => {
 
     res.json(suggestions);
   } catch (error) {
-    console.error('Search API Error:', error);
-    res.status(500).json([]);
+    console.error('Search API Error:', error.message);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
@@ -94,6 +140,10 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     return { isCorrect: false, posterUrl: null };
   }
 
+  if (!TMDB_API_KEY) {
+    return { isCorrect: false, posterUrl: null };
+  }
+
   const endpoint = medium === 'tv' ? 'search/tv' : 'search/movie';
   const creditsEndpoint = medium === 'tv' ? 'aggregate_credits' : 'credits';
 
@@ -102,7 +152,9 @@ async function validateMedia(title, xCategory, yCategory, medium) {
       `${TMDB_BASE_URL}/${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}`
     );
     const searchData = await searchRes.json();
-    if (!searchData.results || searchData.results.length === 0) return { isCorrect: false, posterUrl: null };
+    if (!searchData.results || searchData.results.length === 0) {
+      return { isCorrect: false, posterUrl: null };
+    }
 
     const media = searchData.results[0];
     const creditsRes = await fetch(
@@ -142,21 +194,30 @@ async function validateMedia(title, xCategory, yCategory, medium) {
 
     return { isCorrect, posterUrl };
   } catch (error) {
-    console.error('Validation Error:', error);
+    console.error('Validation Error:', error.message);
     return { isCorrect: false, posterUrl: null };
   }
 }
 
-app.get('/api/puzzles', (req, res) => res.json(puzzles));
+app.get('/api/puzzles', (req, res) => {
+  res.json(puzzles);
+});
 
 app.get('/api/puzzles/:id', (req, res) => {
   const puzzle = puzzles.find(p => p.id === req.params.id);
-  if (!puzzle) return res.status(404).json({ error: 'Puzzle not found' });
+  if (!puzzle) {
+    return res.status(404).json({ error: 'Puzzle not found' });
+  }
   res.json(puzzle);
 });
 
 app.post('/api/puzzles', (req, res) => {
   const { title, medium, genre, xAxis, yAxis } = req.body;
+  
+  if (!title || !xAxis || !yAxis) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
   const newPuzzle = {
     id: uuidv4(),
     title: title || 'Custom ShowGrid',
@@ -174,7 +235,10 @@ app.post('/api/puzzles', (req, res) => {
 app.post('/api/puzzles/:id/solve', async (req, res) => {
   const { userAnswers, timeElapsed = 0 } = req.body;
   const puzzle = puzzles.find(p => p.id === req.params.id);
-  if (!puzzle) return res.status(404).json({ error: 'Puzzle not found' });
+  
+  if (!puzzle) {
+    return res.status(404).json({ error: 'Puzzle not found' });
+  }
 
   let correctCount = 0;
   const totalCells = puzzle.xAxis.length * puzzle.yAxis.length;
@@ -218,5 +282,16 @@ app.post('/api/puzzles/:id/solve', async (req, res) => {
   });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`ShowGrid backend running on port ${PORT}`));
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`ShowGrid backend running on ${HOST}:${PORT}`);
+  console.log(`TMDB API configured: ${!!TMDB_API_KEY}`);
+});
