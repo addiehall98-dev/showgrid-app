@@ -10,7 +10,7 @@ app.use(express.json());
 const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-// Grounded Answer Bank for Musical Theater / Stage Plays
+// Grounded Stage Answer Bank (Broadway & Musical Theater)
 const stageAnswerBank = {
   'Stephen Sondheim (Composer)': {
     'Best Musical Winner': ['Company', 'A Little Night Music', 'Sweeney Todd', 'Passion'],
@@ -34,7 +34,6 @@ const stageAnswerBank = {
   }
 };
 
-// Initial Puzzles Database
 const puzzles = [
   {
     id: 'stage-grid-1',
@@ -58,7 +57,6 @@ const puzzles = [
   }
 ];
 
-// TMDb Search API Proxy (Movies & TV)
 app.get('/api/search', async (req, res) => {
   const { q, medium } = req.query;
   if (!q || q.trim().length < 2) return res.json([]);
@@ -85,7 +83,6 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Helper: Movie & TV Validation via TMDb
 async function validateMedia(title, xCategory, yCategory, medium) {
   if (medium === 'musical_theater') {
     const colBank = stageAnswerBank[xCategory];
@@ -108,7 +105,6 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     if (!searchData.results || searchData.results.length === 0) return { isCorrect: false, posterUrl: null };
 
     const media = searchData.results[0];
-
     const creditsRes = await fetch(
       `${TMDB_BASE_URL}/${medium === 'tv' ? 'tv' : 'movie'}/${media.id}/${creditsEndpoint}?api_key=${TMDB_API_KEY}`
     );
@@ -116,7 +112,6 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     const cast = creditsData.cast || [];
     const crew = creditsData.crew || [];
 
-    // X-Axis Validation (Actor / Director / Creator)
     let xValid = false;
     if (xCategory.startsWith('Actor:')) {
       const name = xCategory.replace('Actor:', '').trim().toLowerCase();
@@ -128,7 +123,6 @@ async function validateMedia(title, xCategory, yCategory, medium) {
       xValid = true;
     }
 
-    // Y-Axis Validation (Release Decade)
     let yValid = false;
     const releaseDate = media.release_date || media.first_air_date;
     const releaseYear = releaseDate ? parseInt(releaseDate.split('-')[0]) : null;
@@ -153,7 +147,6 @@ async function validateMedia(title, xCategory, yCategory, medium) {
   }
 }
 
-// Routes
 app.get('/api/puzzles', (req, res) => res.json(puzzles));
 
 app.get('/api/puzzles/:id', (req, res) => {

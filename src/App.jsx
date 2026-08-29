@@ -10,12 +10,10 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Timer State
   const [seconds, setSeconds] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const timerRef = useRef(null);
 
-  // Form State
   const [title, setTitle] = useState('');
   const [xCategories, setXCategories] = useState(['Actor: Tom Hanks', 'Director: Christopher Nolan', 'Actor: Leonardo DiCaprio']);
   const [yCategories, setYCategories] = useState(['Released 2010s', 'Released 1990s', 'Released 2000s']);
@@ -97,7 +95,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0e0f12] text-gray-100 font-sans p-4 max-w-md mx-auto">
-      {/* Header */}
       <header className="flex justify-between items-center py-4 border-b border-gray-800 mb-6">
         <h1 className="text-xl font-black tracking-wider text-[#f59e0b]">
           SHOWGRID <span className="text-xs text-[#ef4444] font-normal">UNLIMITED</span>
@@ -108,7 +105,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* LOBBY VIEW */}
       {view === 'lobby' && (
         <div className="space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">Available Grids</h2>
@@ -130,11 +126,9 @@ export default function App() {
         </div>
       )}
 
-      {/* CREATE VIEW */}
       {view === 'create' && (
         <form onSubmit={handleCreate} className="space-y-4">
           <h2 className="text-lg font-bold">Build Grid</h2>
-
           <div>
             <label className="text-xs text-gray-400 block mb-1">Medium</label>
             <div className="grid grid-cols-3 gap-2">
@@ -150,7 +144,6 @@ export default function App() {
               ))}
             </div>
           </div>
-
           <div>
             <label className="text-xs text-gray-400 block mb-1">Title</label>
             <input 
@@ -161,7 +154,6 @@ export default function App() {
               className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-sm text-white"
             />
           </div>
-
           <div>
             <label className="text-xs text-gray-400 block mb-1">X-Axis (Columns)</label>
             {xCategories.map((col, idx) => (
@@ -173,7 +165,6 @@ export default function App() {
               />
             ))}
           </div>
-
           <div>
             <label className="text-xs text-gray-400 block mb-1">Y-Axis (Rows)</label>
             {yCategories.map((row, idx) => (
@@ -185,14 +176,12 @@ export default function App() {
               />
             ))}
           </div>
-
           <button type="submit" className="w-full bg-[#ef4444] text-white py-3 rounded font-bold text-sm">
             Launch Grid
           </button>
         </form>
       )}
 
-      {/* SOLVE VIEW */}
       {view === 'solve' && activePuzzle && (
         <div className="space-y-4">
           <div className="flex justify-between items-center bg-gray-900 p-3 rounded-lg border border-gray-800">
@@ -205,9 +194,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Interactive Grid */}
           <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-1 min-w-[340px] text-center text-xs">
+            <div className="grid gap-1 min-w-[340px] text-center text-xs" style={{gridTemplateColumns: `repeat(${activePuzzle.xAxis.length + 1}, minmax(80px, 1fr))`}}>
               <div className="bg-transparent"></div>
               {activePuzzle.xAxis.map((col, i) => (
                 <div key={i} className="bg-gray-800 text-amber-400 p-2 font-bold flex items-center justify-center rounded-t text-[11px] leading-tight">
@@ -244,10 +232,7 @@ export default function App() {
                             </div>
                           )
                         ) : (
-                          <MovieSearchInput
-                            value={userAnswers[cellKey] || ''}
-                            medium={activePuzzle.medium}
-                            onChange={(val) => setUserAnswers({ ...userAnswers, [cellKey]: val })}
+                          <MovieSearchInput value={userAnswers[cellKey] || ''} medium={activePuzzle.medium} onChange={(val) => setUserAnswers({ ...userAnswers, [cellKey]: val })}
                           />
                         )}
                       </div>
