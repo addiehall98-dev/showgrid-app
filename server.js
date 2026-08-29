@@ -31,14 +31,10 @@ app.use((req, res, next) => {
   next();
 });
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_API_KEY = 'ec5bc835e54d1a8725f34283bd18bfca';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-if (!TMDB_API_KEY) {
-  console.warn('⚠️  WARNING: TMDB_API_KEY not set. Movie/TV search will not work.');
-} else {
-  console.log('✅ TMDB API Key configured');
-}
+console.log('✅ TMDB API Key: ec5bc835e54d1a8725f34283bd18bfca configured');
 
 // ============================================
 // BROADWAY & MUSICAL THEATER ANSWER BANK
@@ -119,11 +115,6 @@ app.get('/api/search', async (req, res) => {
     return res.json([]);
   }
 
-  if (!TMDB_API_KEY) {
-    console.warn('Search attempted without TMDB_API_KEY');
-    return res.status(500).json({ error: 'API not configured' });
-  }
-
   const endpoint = medium === 'tv' ? 'search/tv' : 'search/movie';
 
   try {
@@ -164,10 +155,6 @@ async function validateMedia(title, xCategory, yCategory, medium) {
       const isCorrect = validTitles.includes(title.trim().toLowerCase());
       return { isCorrect, posterUrl: null, rarityScore: isCorrect ? 75 : 0 };
     }
-    return { isCorrect: false, posterUrl: null, rarityScore: 0 };
-  }
-
-  if (!TMDB_API_KEY) {
     return { isCorrect: false, posterUrl: null, rarityScore: 0 };
   }
 
@@ -339,5 +326,5 @@ const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`\n🎭 SceneMatrix API Server`);
   console.log(`📍 Running on ${HOST}:${PORT}`);
-  console.log(`✅ Status: ${TMDB_API_KEY ? 'Ready' : 'Waiting for TMDB_API_KEY'}\n`);
+  console.log(`✅ Status: Ready\n`);
 });
