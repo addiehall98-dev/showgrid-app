@@ -3,9 +3,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        stage: '#0e0f12',
-        accent: '#f59e0b',
-        curtain: '#ef4444'
+        matrix: {
+          dark: '#0b0c10',
+          accent: '#66fcf1',
+          teal: '#45a29e'
+        }
       }
     }
   },

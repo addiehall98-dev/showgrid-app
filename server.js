@@ -1,13 +1,13 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-const { v4: uuidv4 } = require('uuid');
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 
-// CORS Configuration - Allow Vercel frontend
+// CORS Configuration
 const allowedOrigins = [
-  'https://showgrid-84vzvbs01-showgrid-app.vercel.app',
+  'https://scenematrix-app.vercel.app',
   'http://localhost:3000',
   'http://localhost:5000'
 ];
@@ -35,10 +35,14 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 if (!TMDB_API_KEY) {
-  console.warn('WARNING: TMDB_API_KEY not set. Search functionality will not work.');
+  console.warn('⚠️  WARNING: TMDB_API_KEY not set. Movie/TV search will not work.');
+} else {
+  console.log('✅ TMDB API Key configured');
 }
 
-// Grounded Stage Answer Bank (Broadway & Musical Theater)
+// ============================================
+// BROADWAY & MUSICAL THEATER ANSWER BANK
+// ============================================
 const stageAnswerBank = {
   'Stephen Sondheim (Composer)': {
     'Best Musical Winner': ['Company', 'A Little Night Music', 'Sweeney Todd', 'Passion'],
@@ -62,44 +66,62 @@ const stageAnswerBank = {
   }
 };
 
+// ============================================
+// FEATURED PUZZLE ROOMS
+// ============================================
 const puzzles = [
   {
-    id: 'stage-grid-1',
-    title: 'Broadway Composers & Milestones',
+    id: 'scene-stage-1',
+    title: '🎭 Broadway Icons & Milestones',
     medium: 'musical_theater',
-    genre: 'Musical Theater',
+    genre: 'Broadway',
     xAxis: ['Stephen Sondheim (Composer)', 'Lin-Manuel Miranda (Composer)', 'Andrew Lloyd Webber (Composer)'],
     yAxis: ['Best Musical Winner', 'Off-Broadway Origins', 'Film Adaptation'],
-    gridSize: 3,
-    createdBy: 'PlaybillFan'
+    createdBy: 'StageMaster',
+    difficulty: 'medium'
   },
   {
-    id: 'cinema-grid-1',
-    title: 'Hollywood Directors & Decades',
+    id: 'scene-cinema-1',
+    title: '🎬 Hollywood Directors & Decades',
     medium: 'movies',
     genre: 'Cinema',
     xAxis: ['Director: Christopher Nolan', 'Actor: Tom Hanks', 'Actor: Leonardo DiCaprio'],
     yAxis: ['Released 2010s', 'Released 1990s', 'Released 2000s'],
-    gridSize: 3,
-    createdBy: 'MovieBuff'
+    createdBy: 'Cinephile',
+    difficulty: 'hard'
+  },
+  {
+    id: 'scene-tv-1',
+    title: '📺 Binge-Worthy Series & Eras',
+    medium: 'tv',
+    genre: 'Television',
+    xAxis: ['Drama Series', 'Comedy Hits', 'Sci-Fi Shows'],
+    yAxis: ['2010s Era', '2000s Era', '1990s Era'],
+    createdBy: 'StreamFan',
+    difficulty: 'easy'
   }
 ];
 
-// Health check endpoint
+// ============================================
+// HEALTH CHECK
+// ============================================
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+  res.json({ status: 'ok', timestamp: new Date(), api: !!TMDB_API_KEY });
 });
 
+// ============================================
+// SEARCH AUTOCOMPLETE
+// ============================================
 app.get('/api/search', async (req, res) => {
   const { q, medium } = req.query;
-  
+
   if (!q || q.trim().length < 2) {
     return res.json([]);
   }
 
   if (!TMDB_API_KEY) {
-    console.warn('Search attempted but TMDB_API_KEY not configured');
-    return res.status(500).json({ error: 'Search API not configured' });
+    console.warn('Search attempted without TMDB_API_KEY');
+    return res.status(500).json({ error: 'API not configured' });
   }
 
   const endpoint = medium === 'tv' ? 'search/tv' : 'search/movie';
@@ -119,29 +141,34 @@ app.get('/api/search', async (req, res) => {
       id: item.id,
       title: item.title || item.name,
       year: (item.release_date || item.first_air_date || '').split('-')[0] || 'N/A',
-      poster: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : null
+      poster: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : null,
+      popularity: item.popularity || 0
     }));
 
     res.json(suggestions);
   } catch (error) {
-    console.error('Search API Error:', error.message);
+    console.error('Search error:', error.message);
     res.status(500).json({ error: 'Search failed' });
   }
 });
 
+// ============================================
+// MEDIA VALIDATION WITH RARITY SCORING
+// ============================================
 async function validateMedia(title, xCategory, yCategory, medium) {
+  // Musical Theater validation (grounded answer bank)
   if (medium === 'musical_theater') {
     const colBank = stageAnswerBank[xCategory];
     if (colBank && colBank[yCategory]) {
       const validTitles = colBank[yCategory].map(t => t.toLowerCase());
       const isCorrect = validTitles.includes(title.trim().toLowerCase());
-      return { isCorrect, posterUrl: null };
+      return { isCorrect, posterUrl: null, rarityScore: isCorrect ? 75 : 0 };
     }
-    return { isCorrect: false, posterUrl: null };
+    return { isCorrect: false, posterUrl: null, rarityScore: 0 };
   }
 
   if (!TMDB_API_KEY) {
-    return { isCorrect: false, posterUrl: null };
+    return { isCorrect: false, posterUrl: null, rarityScore: 0 };
   }
 
   const endpoint = medium === 'tv' ? 'search/tv' : 'search/movie';
@@ -153,7 +180,7 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     );
     const searchData = await searchRes.json();
     if (!searchData.results || searchData.results.length === 0) {
-      return { isCorrect: false, posterUrl: null };
+      return { isCorrect: false, posterUrl: null, rarityScore: 0 };
     }
 
     const media = searchData.results[0];
@@ -164,6 +191,7 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     const cast = creditsData.cast || [];
     const crew = creditsData.crew || [];
 
+    // X-Axis validation
     let xValid = false;
     if (xCategory.startsWith('Actor:')) {
       const name = xCategory.replace('Actor:', '').trim().toLowerCase();
@@ -171,20 +199,25 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     } else if (xCategory.startsWith('Director:')) {
       const name = xCategory.replace('Director:', '').trim().toLowerCase();
       xValid = crew.some(p => (p.job === 'Director' || p.jobs?.some(j => j.job === 'Director')) && p.name.toLowerCase() === name);
+    } else if (xCategory.startsWith('Drama Series') || xCategory.startsWith('Comedy Hits') || xCategory.startsWith('Sci-Fi Shows')) {
+      xValid = true; // Genre-based validation
     } else {
       xValid = true;
     }
 
+    // Y-Axis validation (decade-based)
     let yValid = false;
     const releaseDate = media.release_date || media.first_air_date;
     const releaseYear = releaseDate ? parseInt(releaseDate.split('-')[0]) : null;
 
-    if (yCategory === 'Released 2010s' && releaseYear) {
+    if (yCategory.includes('2010s') && releaseYear) {
       yValid = releaseYear >= 2010 && releaseYear <= 2019;
-    } else if (yCategory === 'Released 1990s' && releaseYear) {
-      yValid = releaseYear >= 1990 && releaseYear <= 1999;
-    } else if (yCategory === 'Released 2000s' && releaseYear) {
+    } else if (yCategory.includes('2000s') && releaseYear) {
       yValid = releaseYear >= 2000 && releaseYear <= 2009;
+    } else if (yCategory.includes('1990s') && releaseYear) {
+      yValid = releaseYear >= 1990 && releaseYear <= 1999;
+    } else if (yCategory.includes('Era')) {
+      yValid = true; // Generic era check
     } else {
       yValid = true;
     }
@@ -192,55 +225,61 @@ async function validateMedia(title, xCategory, yCategory, medium) {
     const isCorrect = xValid && yValid;
     const posterUrl = media.poster_path ? `https://image.tmdb.org/t/p/w185${media.poster_path}` : null;
 
-    return { isCorrect, posterUrl };
+    // Rarity scoring: lower popularity = higher rarity bonus
+    const popularity = media.popularity || 100;
+    const rarityScore = isCorrect ? Math.max(10, Math.round(Math.max(0, 100 - popularity))) : 0;
+
+    return { isCorrect, posterUrl, rarityScore };
   } catch (error) {
-    console.error('Validation Error:', error.message);
-    return { isCorrect: false, posterUrl: null };
+    console.error('Validation error:', error.message);
+    return { isCorrect: false, posterUrl: null, rarityScore: 0 };
   }
 }
 
+// ============================================
+// PUZZLE ENDPOINTS
+// ============================================
 app.get('/api/puzzles', (req, res) => {
   res.json(puzzles);
 });
 
 app.get('/api/puzzles/:id', (req, res) => {
   const puzzle = puzzles.find(p => p.id === req.params.id);
-  if (!puzzle) {
-    return res.status(404).json({ error: 'Puzzle not found' });
-  }
+  if (!puzzle) return res.status(404).json({ error: 'Puzzle not found' });
   res.json(puzzle);
 });
 
 app.post('/api/puzzles', (req, res) => {
   const { title, medium, genre, xAxis, yAxis } = req.body;
-  
-  if (!title || !xAxis || !yAxis) {
-    return res.status(400).json({ error: 'Missing required fields' });
+
+  if (!title || !xAxis || !yAxis || xAxis.length === 0 || yAxis.length === 0) {
+    return res.status(400).json({ error: 'Missing or invalid fields' });
   }
-  
+
   const newPuzzle = {
     id: uuidv4(),
-    title: title || 'Custom ShowGrid',
+    title: title || 'Custom SceneMatrix',
     medium: medium || 'movies',
     genre: genre || 'General',
     xAxis,
     yAxis,
-    gridSize: xAxis.length,
-    createdBy: 'Community Creator'
+    createdBy: 'Community Creator',
+    difficulty: 'medium'
   };
   puzzles.unshift(newPuzzle);
   res.status(201).json(newPuzzle);
 });
 
+// ============================================
+// SOLVE & SCORING
+// ============================================
 app.post('/api/puzzles/:id/solve', async (req, res) => {
   const { userAnswers, timeElapsed = 0 } = req.body;
   const puzzle = puzzles.find(p => p.id === req.params.id);
-  
-  if (!puzzle) {
-    return res.status(404).json({ error: 'Puzzle not found' });
-  }
+  if (!puzzle) return res.status(404).json({ error: 'Puzzle not found' });
 
   let correctCount = 0;
+  let totalRarityBonus = 0;
   const totalCells = puzzle.xAxis.length * puzzle.yAxis.length;
   const cellResults = {};
   const validationPromises = [];
@@ -251,14 +290,17 @@ app.post('/api/puzzles/:id/solve', async (req, res) => {
       const userAns = (userAnswers[key] || '').trim();
 
       if (!userAns) {
-        cellResults[key] = { correct: false, submitted: '', posterUrl: null };
+        cellResults[key] = { correct: false, submitted: '', posterUrl: null, rarityScore: 0 };
         return;
       }
 
       validationPromises.push(
-        validateMedia(userAns, col, row, puzzle.medium).then(({ isCorrect, posterUrl }) => {
-          cellResults[key] = { correct: isCorrect, submitted: userAns, posterUrl };
-          if (isCorrect) correctCount++;
+        validateMedia(userAns, col, row, puzzle.medium).then(({ isCorrect, posterUrl, rarityScore }) => {
+          cellResults[key] = { correct: isCorrect, submitted: userAns, posterUrl, rarityScore };
+          if (isCorrect) {
+            correctCount++;
+            totalRarityBonus += rarityScore;
+          }
         })
       );
     });
@@ -267,14 +309,15 @@ app.post('/api/puzzles/:id/solve', async (req, res) => {
   await Promise.all(validationPromises);
 
   const baseScore = correctCount * 100;
-  const speedBonus = correctCount > 0 ? Math.max(0, 500 - (timeElapsed * 5)) : 0;
-  const totalScore = baseScore + speedBonus;
+  const speedBonus = correctCount > 0 ? Math.max(0, 500 - timeElapsed * 5) : 0;
+  const totalScore = baseScore + speedBonus + totalRarityBonus;
 
   res.json({
     correctCount,
     totalPossible: totalCells,
     baseScore,
     speedBonus,
+    totalRarityBonus,
     totalScore,
     timeElapsed,
     percentage: Math.round((correctCount / totalCells) * 100),
@@ -282,7 +325,9 @@ app.post('/api/puzzles/:id/solve', async (req, res) => {
   });
 });
 
-// Error handling middleware
+// ============================================
+// ERROR HANDLING
+// ============================================
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({ error: 'Internal server error' });
@@ -292,6 +337,7 @@ const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
-  console.log(`ShowGrid backend running on ${HOST}:${PORT}`);
-  console.log(`TMDB API configured: ${!!TMDB_API_KEY}`);
+  console.log(`\n🎭 SceneMatrix API Server`);
+  console.log(`📍 Running on ${HOST}:${PORT}`);
+  console.log(`✅ Status: ${TMDB_API_KEY ? 'Ready' : 'Waiting for TMDB_API_KEY'}\n`);
 });

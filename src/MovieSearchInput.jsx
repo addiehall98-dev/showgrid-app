@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Get API URL from environment
 const API_URL = import.meta.env.REACT_APP_API_URL || 'https://showgrid-api.onrender.com';
 
 export default function MovieSearchInput({ value, onChange, disabled, medium }) {
@@ -27,7 +26,7 @@ export default function MovieSearchInput({ value, onChange, disabled, medium }) 
         .then(res => res.json())
         .then(data => {
           setSuggestions(Array.isArray(data) ? data : []);
-          setIsOpen((Array.isArray(data) ? data : []).length > 0);
+          setIsOpen(Array.isArray(data) && data.length > 0);
           setLoading(false);
         })
         .catch(err => {
@@ -59,7 +58,7 @@ export default function MovieSearchInput({ value, onChange, disabled, medium }) 
     <div className="relative w-full h-full" ref={dropdownRef}>
       <input
         type="text"
-        placeholder="Type title..."
+        placeholder="Search title..."
         disabled={disabled}
         value={query}
         onChange={(e) => {
@@ -69,16 +68,14 @@ export default function MovieSearchInput({ value, onChange, disabled, medium }) 
         onFocus={() => {
           if (suggestions.length > 0) setIsOpen(true);
         }}
-        className="w-full h-full bg-gray-700 hover:bg-gray-600 focus:bg-gray-600 text-white placeholder-gray-400 text-center text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 rounded px-2 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-full bg-gray-700 hover:bg-gray-600 focus:bg-gray-600 text-white placeholder-gray-400 text-center text-xs focus:outline-none focus:ring-2 focus:ring-matrix-accent rounded px-2 py-2 disabled:opacity-50"
       />
 
       {isOpen && !disabled && (
-        <ul className="absolute z-50 left-0 top-full mt-1 w-full min-w-[200px] bg-gray-900 border border-gray-700 rounded-md shadow-xl overflow-hidden max-h-60 overflow-y-auto text-left">
-          {loading && (
-            <li className="p-3 text-gray-400 text-sm text-center">Searching...</li>
-          )}
+        <ul className="absolute z-50 left-0 top-full mt-1 w-full min-w-[200px] bg-gray-900 border border-matrix-accent/30 rounded-md shadow-xl overflow-hidden max-h-60 overflow-y-auto text-left">
+          {loading && <li className="p-3 text-gray-400 text-xs text-center">Searching...</li>}
           {!loading && suggestions.length === 0 && query.trim().length >= 2 && (
-            <li className="p-3 text-gray-400 text-sm text-center">No results found</li>
+            <li className="p-3 text-gray-400 text-xs text-center">No results found</li>
           )}
           {suggestions.map((item) => (
             <li
@@ -88,16 +85,16 @@ export default function MovieSearchInput({ value, onChange, disabled, medium }) 
                 onChange(item.title);
                 setIsOpen(false);
               }}
-              className="flex items-center gap-3 p-3 hover:bg-gray-800 cursor-pointer border-b border-gray-800 last:border-0 transition"
+              className="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer border-b border-gray-800 last:border-0 transition"
             >
               {item.poster ? (
-                <img src={item.poster} alt={item.title} className="w-8 h-12 object-cover rounded flex-shrink-0" />
+                <img src={item.poster} alt={item.title} className="w-5 h-8 object-cover rounded flex-shrink-0" />
               ) : (
-                <div className="w-8 h-12 bg-gray-800 rounded flex items-center justify-center text-[8px] text-gray-500 flex-shrink-0">N/A</div>
+                <div className="w-5 h-8 bg-gray-800 rounded flex items-center justify-center text-[8px] text-gray-500">N/A</div>
               )}
-              <div className="overflow-hidden flex-1">
-                <p className="text-sm text-white font-medium truncate">{item.title}</p>
-                <p className="text-xs text-gray-400">{item.year || 'N/A'}</p>
+              <div className="overflow-hidden">
+                <p className="text-xs text-white font-medium truncate">{item.title}</p>
+                <p className="text-[10px] text-gray-400">{item.year}</p>
               </div>
             </li>
           ))}

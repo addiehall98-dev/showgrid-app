@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MovieSearchInput from './MovieSearchInput';
 
-// Get API URL from environment or use default
 const API_URL = import.meta.env.REACT_APP_API_URL || 'https://showgrid-api.onrender.com';
-
-console.log('API URL:', API_URL);
 
 export default function App() {
   const [view, setView] = useState('lobby');
@@ -22,9 +19,10 @@ export default function App() {
   const timerRef = useRef(null);
 
   const [title, setTitle] = useState('');
-  const [xCategories, setXCategories] = useState(['Actor: Tom Hanks', 'Director: Christopher Nolan', 'Actor: Leonardo DiCaprio']);
-  const [yCategories, setYCategories] = useState(['Released 2010s', 'Released 1990s', 'Released 2000s']);
+  const [xCategories, setXCategories] = useState(['Category 1', 'Category 2', 'Category 3']);
+  const [yCategories, setYCategories] = useState(['Row 1', 'Row 2', 'Row 3']);
 
+  // Load puzzles on mount
   useEffect(() => {
     setLoading(true);
     fetch(`${API_URL}/api/puzzles`)
@@ -43,6 +41,7 @@ export default function App() {
       });
   }, []);
 
+  // Timer effect
   useEffect(() => {
     if (timerActive) {
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
@@ -67,6 +66,7 @@ export default function App() {
       setError('Please fill in all fields');
       return;
     }
+
     const newPuzzle = { title, medium, xAxis: xCategories, yAxis: yCategories };
     fetch(`${API_URL}/api/puzzles`, {
       method: 'POST',
@@ -81,8 +81,8 @@ export default function App() {
         setError(null);
         setPuzzles([data, ...puzzles]);
         setTitle('');
-        setXCategories(['', '', '']);
-        setYCategories(['', '', '']);
+        setXCategories(['Category 1', 'Category 2', 'Category 3']);
+        setYCategories(['Row 1', 'Row 2', 'Row 3']);
         startPuzzle(data);
       })
       .catch(err => {
@@ -105,7 +105,7 @@ export default function App() {
       .then(data => setResult(data))
       .catch(err => {
         console.error('Error submitting puzzle:', err);
-        setError(`Failed to submit puzzle: ${err.message}`);
+        setError(`Failed to submit: ${err.message}`);
       });
   };
 
@@ -119,8 +119,8 @@ export default function App() {
       }
       gridText += '\n';
     }
-    const shareMessage = `ShowGrid Unlimited 🎭\n"${activePuzzle.title}"\nScore: ${result.totalScore} PTS (${result.correctCount}/${result.totalPossible})\nTime: ${seconds}s\n\n${gridText}\nPlay grid: ${window.location.origin}`;
-    
+    const shareMessage = `SceneMatrix 🎬\n"${activePuzzle.title}"\nScore: ${result.totalScore} PTS\n${result.correctCount}/${result.totalPossible} Correct\nTime: ${seconds}s\n\n${gridText}\nPlay at: ${window.location.origin}`;
+
     navigator.clipboard.writeText(shareMessage).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -134,34 +134,34 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0e0f12] text-gray-100 font-sans">
+    <div className="min-h-screen bg-matrix-dark text-gray-100 font-sans">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <header className="flex justify-between items-center py-6 border-b border-gray-800 mb-8">
-          <h1 className="text-3xl font-black tracking-wider text-[#f59e0b]">
-            SHOWGRID <span className="text-sm text-[#ef4444] font-normal">UNLIMITED</span>
+          <h1 className="text-3xl font-black tracking-wider text-matrix-accent">
+            SCENEMATRIX <span className="text-sm text-matrix-teal font-normal">MASHUP</span>
           </h1>
           <div className="flex gap-3">
             {view !== 'lobby' && (
-              <button 
-                onClick={() => { setTimerActive(false); setView('lobby'); setError(null); }} 
+              <button
+                onClick={() => { setTimerActive(false); setView('lobby'); setError(null); }}
                 className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-gray-300 font-medium transition"
               >
                 ← Lobby
               </button>
             )}
             {view !== 'create' && (
-              <button 
-                onClick={() => { setTimerActive(false); setView('create'); setError(null); }} 
-                className="px-4 py-2 bg-[#ef4444] hover:bg-red-500 text-white rounded font-bold transition"
+              <button
+                onClick={() => { setTimerActive(false); setView('create'); setError(null); }}
+                className="px-4 py-2 bg-matrix-teal hover:bg-matrix-accent text-black rounded font-bold transition"
               >
-                + Create Grid
+                + Create
               </button>
             )}
           </div>
         </header>
 
-        {/* Error message */}
+        {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded text-red-200 flex justify-between items-center">
             <span>{error}</span>
@@ -169,38 +169,38 @@ export default function App() {
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading State */}
         {loading && view === 'lobby' && (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">Loading puzzles...</p>
+            <p className="text-gray-400 text-lg">Loading puzzle rooms...</p>
           </div>
         )}
 
-        {/* Lobby View */}
+        {/* LOBBY VIEW */}
         {view === 'lobby' && !loading && (
           <div>
-            <h2 className="text-2xl font-bold mb-6 text-white">Available Grids</h2>
+            <h2 className="text-2xl font-bold mb-6 text-white">Featured Puzzle Rooms</h2>
             {puzzles.length === 0 ? (
               <div className="text-center py-12 bg-gray-900 rounded-lg border border-gray-800">
-                <p className="text-gray-400 mb-4">No puzzles available yet</p>
+                <p className="text-gray-400 mb-4">No puzzle rooms available</p>
                 <button
                   onClick={() => setView('create')}
-                  className="px-6 py-3 bg-[#f59e0b] hover:bg-amber-400 text-black font-bold rounded transition"
+                  className="px-6 py-3 bg-matrix-accent hover:bg-matrix-teal text-black font-bold rounded transition"
                 >
-                  Create the First Grid
+                  Create First Room
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {puzzles.map(p => (
-                  <div 
-                    key={p.id} 
+                  <div
+                    key={p.id}
                     onClick={() => startPuzzle(p)}
-                    className="p-6 bg-gray-900 border border-gray-800 rounded-lg cursor-pointer hover:border-[#f59e0b] hover:shadow-lg hover:shadow-amber-900/50 transition transform hover:-translate-y-1"
+                    className="p-6 bg-gray-900 border border-gray-800 rounded-lg cursor-pointer hover:border-matrix-accent hover:shadow-lg hover:shadow-matrix-teal/20 transition transform hover:-translate-y-1"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-white text-lg">{p.title}</h3>
-                      <span className="text-xs uppercase bg-gray-800 px-3 py-1 rounded text-amber-400 font-semibold">
+                      <span className="text-xs uppercase bg-gray-800 px-3 py-1 rounded text-matrix-accent font-semibold">
                         {p.medium.replace('_', ' ')}
                       </span>
                     </div>
@@ -213,10 +213,10 @@ export default function App() {
           </div>
         )}
 
-        {/* Create View */}
+        {/* CREATE VIEW */}
         {view === 'create' && (
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-bold mb-6 text-white">Create Custom Grid</h2>
+            <h2 className="text-2xl font-bold mb-6 text-white">Create Custom Room</h2>
             <form onSubmit={handleCreate} className="space-y-6 bg-gray-900 p-8 rounded-lg border border-gray-800">
               <div>
                 <label className="block text-sm font-bold text-gray-300 mb-2">Medium</label>
@@ -227,8 +227,8 @@ export default function App() {
                       key={m}
                       onClick={() => setMedium(m)}
                       className={`py-3 rounded font-bold border transition capitalize ${
-                        medium === m 
-                          ? 'bg-[#f59e0b] text-black border-[#f59e0b]' 
+                        medium === m
+                          ? 'bg-matrix-accent text-black border-matrix-accent'
                           : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-600'
                       }`}
                     >
@@ -239,60 +239,68 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-2">Grid Title</label>
-                <input 
-                  required 
-                  value={title} 
-                  onChange={e => setTitle(e.target.value)} 
-                  placeholder="e.g., 2010s Sci-Fi Directors" 
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white placeholder-gray-500 focus:border-amber-400 focus:outline-none transition"
+                <label className="block text-sm font-bold text-gray-300 mb-2">Room Title</label>
+                <input
+                  required
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="e.g., 90s Blockbusters & Stars"
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3 text-white placeholder-gray-500 focus:border-matrix-accent focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-3">X-Axis Categories (Columns)</label>
+                <label className="block text-sm font-bold text-gray-300 mb-3">X-Axis Categories</label>
                 <div className="space-y-2">
                   {xCategories.map((col, idx) => (
                     <input
                       key={idx}
                       value={col}
-                      onChange={e => { const val = [...xCategories]; val[idx] = e.target.value; setXCategories(val); }}
+                      onChange={e => {
+                        const val = [...xCategories];
+                        val[idx] = e.target.value;
+                        setXCategories(val);
+                      }}
                       placeholder={`Column ${idx + 1}`}
-                      className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white placeholder-gray-500 focus:border-amber-400 focus:outline-none transition"
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white placeholder-gray-500 focus:border-matrix-accent focus:outline-none transition"
                     />
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-3">Y-Axis Categories (Rows)</label>
+                <label className="block text-sm font-bold text-gray-300 mb-3">Y-Axis Categories</label>
                 <div className="space-y-2">
                   {yCategories.map((row, idx) => (
                     <input
                       key={idx}
                       value={row}
-                      onChange={e => { const val = [...yCategories]; val[idx] = e.target.value; setYCategories(val); }}
+                      onChange={e => {
+                        const val = [...yCategories];
+                        val[idx] = e.target.value;
+                        setYCategories(val);
+                      }}
                       placeholder={`Row ${idx + 1}`}
-                      className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white placeholder-gray-500 focus:border-amber-400 focus:outline-none transition"
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white placeholder-gray-500 focus:border-matrix-accent focus:outline-none transition"
                     />
                   ))}
                 </div>
               </div>
 
-              <button 
-                type="submit" 
-                className="w-full bg-[#ef4444] hover:bg-red-500 text-white py-4 rounded font-bold text-lg transition"
+              <button
+                type="submit"
+                className="w-full bg-matrix-teal hover:bg-matrix-accent text-black py-4 rounded font-bold text-lg transition"
               >
-                Launch Grid 🚀
+                Launch Room 🚀
               </button>
             </form>
           </div>
         )}
 
-        {/* Solve View */}
+        {/* SOLVE VIEW */}
         {view === 'solve' && activePuzzle && (
           <div className="space-y-6">
-            {/* Header Info */}
+            {/* Header */}
             <div className="flex justify-between items-center bg-gray-900 p-6 rounded-lg border border-gray-800">
               <div>
                 <h2 className="text-2xl font-bold text-white">{activePuzzle.title}</h2>
@@ -300,28 +308,28 @@ export default function App() {
                   {activePuzzle.medium.replace('_', ' ')}
                 </span>
               </div>
-              <div className="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded text-amber-400 font-mono text-2xl font-bold border border-amber-500/20">
+              <div className="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded text-matrix-accent font-mono text-2xl font-bold border border-matrix-accent/20">
                 ⏱️ {formatTime(seconds)}
               </div>
             </div>
 
             {/* Grid */}
             <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 overflow-auto">
-              <div 
+              <div
                 className="inline-grid gap-2 p-4 bg-gray-800 rounded"
                 style={{
                   gridTemplateColumns: `auto repeat(${activePuzzle.xAxis.length}, 1fr)`,
                   gridAutoRows: 'auto'
                 }}
               >
-                {/* Top-left corner (empty) */}
+                {/* Top-left corner */}
                 <div className="w-32 h-12"></div>
 
                 {/* Column headers */}
                 {activePuzzle.xAxis.map((col, i) => (
-                  <div 
-                    key={`col-${i}`} 
-                    className="w-32 h-12 bg-amber-900/50 border border-amber-700 text-amber-400 p-2 font-bold flex items-center justify-center rounded text-center text-sm leading-tight"
+                  <div
+                    key={`col-${i}`}
+                    className="w-32 h-12 bg-matrix-teal/20 border border-matrix-accent text-matrix-accent p-2 font-bold flex items-center justify-center rounded text-center text-sm leading-tight"
                   >
                     {col}
                   </div>
@@ -331,8 +339,8 @@ export default function App() {
                 {activePuzzle.yAxis.map((row, yIdx) => (
                   <React.Fragment key={`row-${yIdx}`}>
                     {/* Row header */}
-                    <div 
-                      className="w-32 h-20 bg-amber-900/50 border border-amber-700 text-amber-400 p-2 font-bold flex items-center justify-center rounded text-center text-sm leading-tight"
+                    <div
+                      className="w-32 h-20 bg-matrix-teal/20 border border-matrix-accent text-matrix-accent p-2 font-bold flex items-center justify-center rounded text-center text-sm leading-tight"
                     >
                       {row}
                     </div>
@@ -342,8 +350,8 @@ export default function App() {
                       const cellKey = `${xIdx}-${yIdx}`;
                       const res = result?.cellResults?.[cellKey];
                       return (
-                        <div 
-                          key={cellKey} 
+                        <div
+                          key={cellKey}
                           className="w-32 h-20 bg-gray-700 border border-gray-600 rounded overflow-hidden flex items-center justify-center"
                         >
                           {result ? (
@@ -365,9 +373,9 @@ export default function App() {
                               </div>
                             )
                           ) : (
-                            <MovieSearchInput 
-                              value={userAnswers[cellKey] || ''} 
-                              medium={activePuzzle.medium} 
+                            <MovieSearchInput
+                              value={userAnswers[cellKey] || ''}
+                              medium={activePuzzle.medium}
                               disabled={false}
                               onChange={(val) => setUserAnswers({ ...userAnswers, [cellKey]: val })}
                             />
@@ -382,49 +390,53 @@ export default function App() {
 
             {/* Submit or Results */}
             {!result ? (
-              <button 
-                onClick={handleSolveSubmit} 
-                className="w-full bg-[#f59e0b] hover:bg-amber-400 text-black font-bold py-4 rounded text-lg transition"
+              <button
+                onClick={handleSolveSubmit}
+                className="w-full bg-matrix-accent hover:bg-matrix-teal text-black font-bold py-4 rounded text-lg transition"
               >
                 Submit Grid ({formatTime(seconds)})
               </button>
             ) : (
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center space-y-6">
-                <h3 className="text-5xl font-black text-amber-400">{result.totalScore} PTS</h3>
-                
-                <div className="grid grid-cols-3 gap-4 py-6 border-y border-gray-800">
+                <h3 className="text-5xl font-black text-matrix-accent">{result.totalScore} PTS</h3>
+
+                <div className="grid grid-cols-4 gap-4 py-6 border-y border-gray-800">
                   <div className="p-4 bg-gray-800 rounded">
-                    <p className="text-gray-500 text-xs uppercase font-bold mb-1">Base Score</p>
+                    <p className="text-gray-500 text-xs uppercase font-bold mb-1">Base</p>
                     <p className="text-white font-bold text-2xl">{result.baseScore}</p>
                   </div>
                   <div className="p-4 bg-gray-800 rounded">
-                    <p className="text-gray-500 text-xs uppercase font-bold mb-1">Speed Bonus</p>
+                    <p className="text-gray-500 text-xs uppercase font-bold mb-1">Speed</p>
                     <p className="text-green-400 font-bold text-2xl">+{result.speedBonus}</p>
                   </div>
                   <div className="p-4 bg-gray-800 rounded">
+                    <p className="text-gray-500 text-xs uppercase font-bold mb-1">Rarity</p>
+                    <p className="text-amber-400 font-bold text-2xl">+{result.totalRarityBonus}</p>
+                  </div>
+                  <div className="p-4 bg-gray-800 rounded">
                     <p className="text-gray-500 text-xs uppercase font-bold mb-1">Time</p>
-                    <p className="text-amber-400 font-bold text-2xl">{result.timeElapsed}s</p>
+                    <p className="text-matrix-accent font-bold text-2xl">{result.timeElapsed}s</p>
                   </div>
                 </div>
 
                 <div className="text-center">
                   <p className="text-gray-400 text-sm mb-2">Correct: {result.correctCount} of {result.totalPossible}</p>
-                  <p className="text-amber-400 font-bold text-lg">{result.percentage}% Solved</p>
+                  <p className="text-matrix-accent font-bold text-lg">{result.percentage}% Solved</p>
                 </div>
 
                 <div className="space-y-3">
-                  <button 
+                  <button
                     onClick={copyShareText}
-                    className="w-full bg-[#f59e0b] hover:bg-amber-400 text-black font-bold py-3 rounded text-lg transition"
+                    className="w-full bg-matrix-accent hover:bg-matrix-teal text-black font-bold py-3 rounded text-lg transition"
                   >
                     {copied ? '✓ Copied!' : '📋 Copy Emoji Share Grid'}
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => startPuzzle(activePuzzle)}
                     className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded text-lg transition"
                   >
-                    Replay Grid 🔄
+                    Replay Room 🔄
                   </button>
 
                   <button
